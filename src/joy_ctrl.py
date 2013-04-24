@@ -25,7 +25,7 @@ def move(publisher,linear,ang):
 	publisher.publish(speed_command)
 	
 
-def move_head_tilt(publisher, speed_tilt, speed_pan):
+def move_head(publisher, speed_tilt, speed_pan):
 	global joy_prev
 	global head_tilt_pos
 	global head_pan_pos
@@ -43,13 +43,6 @@ def move_head_tilt(publisher, speed_tilt, speed_pan):
 		pan_pos -= 0.2
 	elif speed_pan < 0:
 		pan_pos += 0.2
-
-#	if joy_prev.axes[3] > speed_tilt:
-#		tilt_pos -= 1
-#	elif joy_prev.axes[3] < speed_tilt:
-#		tilt_pos += 1
-#	else:
-#		tilt_pos = 0
 
 	servo_command.position=[tilt_pos, pan_pos]
 
@@ -75,37 +68,13 @@ def callback(data):
 	joy_prev = data
 
 def main():
-	print "Initializing..."
 	rospy.init_node('qbo_manual_control')
 	
 	pub = rospy.Publisher('/cmd_vel', Twist)
 	sub = rospy.Subscriber('/joy', Joy, callback)
 	sub_joint = rospy.Subscriber('/joint_states', JointState, cb_joint)
-	
-	fd = sys.stdin.fileno()
-	old_settings = termios.tcgetattr(fd)
-	
-	print "Start"
-	while(not rospy.is_shutdown()):
-		tty.setraw(sys.stdin.fileno())
-		ch = sys.stdin.read(1)
-	
-		if ch=='w' or ch=='W': #Forewards
-			move(pub,0.3,0)
-		elif ch=='s' or ch=='S': #Backwards
-			move(pub,-0.3,0)
-		elif ch=='a' or ch=='A': #Left
-			move(pub,0,1)
-		elif ch=='d' or ch=='D': #Right
-			move(pub,0,-1)
-		else:
-			move(pub,0,0) #Stop and quit loop
-			break
-		#Wait until read other keyboard, because for each message the robot will be move for a second
-		time.sleep(0.5)
-	
-	termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
+	rospy.spin()	
 
 if __name__ == "__main__":
 	main()
