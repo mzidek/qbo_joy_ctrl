@@ -1,0 +1,17 @@
+<package>
+  <description brief="qbo_joy_ctrl">
+
+     qbo_joy_ctrl
+
+  </description>
+  <author>mzi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/qbo_joy_ctrl</url>
+  <depend package="rospy"/>
+  <depend package="geometry_msgs"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+
