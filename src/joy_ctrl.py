@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest('qbo_manual_control')
+import roslib; roslib.load_manifest('qbo_joy_ctrl')
 import rospy
 
 from geometry_msgs.msg import Twist
@@ -10,69 +10,64 @@ from sensor_msgs.msg import Joy
 import time
 import sys, tty, termios
 
-head_tilt_pos = 0.0
-head_pan_pos = 0.0
-joy_prev = Joy()
+class JoyCtrl:
+	def __init__(self):
+		self.axis_wheel_straight = rospy.get_param('axis_wheel_straight', 1)
+		self.axis_wheel_turn = rospy.get_param('axis_wheel_turn', 0)
+		self.axis_head_pan = rospy.get_param('axis_head_pan', 2)
+		self.axis_head_tilt = rospy.get_param('axis_head_tilt', 3)
+		self.button_nose = rospy.get_param('button_nose', 14)
 
-def move(publisher,linear,ang):
-	speed_command=Twist()
-	speed_command.linear.x=linear
-	speed_command.linear.y=0
-	speed_command.linear.z=0
-	speed_command.angular.x=0
-	speed_command.angular.y=0
-	speed_command.angular.z=ang
-	publisher.publish(speed_command)
+		self.pub_base = rospy.Publisher('/cmd_vel', Twist)
+		self.pub_joints = rospy.Publisher('/cmd_joints',JointState)
+		
+		self.sub_joy = rospy.Subscriber('/joy', Joy, self.joy_cb)
+		self.sub_joint = rospy.Subscriber('/joint_states', JointState, self.joint_cb)
+
+	def joy_cb(self, data):
+		self.move_base(self.pub_base, data.axes[self.axis_wheel_straight]*0.5, data.axes[self.axis_wheel_turn])
+		self.move_head(self.pub_joints, data.axes[self.axis_head_tilt], data.axes[self.axis_head_pan])
+
+	def joint_cb(self, data):
+		self.head_tilt_pos = data.position[3]
+		self.head_pan_pos = data.position[2]
+		
+
+	def move_base(self, publisher, linear, ang):
+		speed_command=Twist()
+		speed_command.linear.x=linear
+		speed_command.linear.y=0
+		speed_command.linear.z=0
+		speed_command.angular.x=0
+		speed_command.angular.y=0
+		speed_command.angular.z=ang
+		publisher.publish(speed_command)
+
+	def move_head(self, publisher, speed_tilt, speed_pan):
+		servo_command=JointState()
+		servo_command.name=['head_tilt_joint', 'head_pan_joint']
+		tilt_pos = self.head_tilt_pos
+		pan_pos = self.head_pan_pos
 	
-
-def move_head(publisher, speed_tilt, speed_pan):
-	global joy_prev
-	global head_tilt_pos
-	global head_pan_pos
-	servo_command=JointState()
-	servo_command.name=['head_tilt_joint', 'head_pan_joint']
-	tilt_pos = head_tilt_pos
-	pan_pos = head_pan_pos
-
-	if speed_tilt > 0:
-		tilt_pos -= 0.2
-	elif speed_tilt < 0:
-		tilt_pos += 0.2
-
-	if speed_pan > 0:
-		pan_pos -= 0.2
-	elif speed_pan < 0:
-		pan_pos += 0.2
-
-	servo_command.position=[tilt_pos, pan_pos]
-
-	publisher.publish(servo_command)
-
+		if speed_tilt > 0:
+			tilt_pos -= 0.2
+		elif speed_tilt < 0:
+			tilt_pos += 0.2
 	
-
-def cb_joint(data):
-	global head_tilt_pos
-	global head_pan_pos
-	head_tilt_pos = data.position[3]
-	head_pan_pos = data.position[2]
-
-def callback(data):
-	global joy_prev
-	if (len(joy_prev.axes) == 0):
-		joy_prev = data
-	pub = rospy.Publisher('/cmd_vel', Twist)
-	pub_joints = rospy.Publisher('/cmd_joints',JointState)
-	move(pub, data.axes[1]*0.5, data.axes[0])
-#	print data
-	move_head_tilt(pub_joints, data.axes[3], data.axes[2])
-	joy_prev = data
+		if speed_pan > 0:
+			pan_pos -= 0.2
+		elif speed_pan < 0:
+			pan_pos += 0.2
+	
+		servo_command.position=[tilt_pos, pan_pos]
+	
+		publisher.publish(servo_command)
+		
 
 def main():
-	rospy.init_node('qbo_manual_control')
-	
-	pub = rospy.Publisher('/cmd_vel', Twist)
-	sub = rospy.Subscriber('/joy', Joy, callback)
-	sub_joint = rospy.Subscriber('/joint_states', JointState, cb_joint)
+	rospy.init_node('qbo_joy_ctrl')
+
+	c = JoyCtrl()
 
 	rospy.spin()	
 
