@@ -2,10 +2,14 @@
     <param name="/system_lang" value="en"/>
 
     <master auto="start" />
-    <node pkg="joy" name="joy_node" type="joy_node"/>
-    <node pkg="qbo_joy_ctrl" name="qbo_joy" type="joy_ctrl.py">
-        <rosparam file="$(find qbo_joy_ctrl)/params.yaml" command="load" />
+    <node pkg="joy" name="joy_node" type="joy_node" output="screen">
+		<param name="autorepeat_rate" type="double" value="5" />
+		<param name="coalesce_interval" type="double" value="0.200" />
+	</node>
+    <node pkg="qbo_joy_ctrl" name="qbo_joy" type="joy_ctrl.py" output="screen">
+		<rosparam file="$(find qbo_joy_ctrl)/params.yaml" command="load" />
     </node>
+    
 <!--    <node pkg="qbo_brain"  name="qbo_brain"      type="qbo_brain.py" output="screen" /> -->
 
 </launch>
