@@ -20,6 +20,10 @@ import sys, tty, termios
 import types
 from random import shuffle
 
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
+import signal
+
 def numberToMouthArray(shapeNumber):
     #create shape array from string number
     #shapeNumber = int(number)
@@ -55,10 +59,13 @@ class JoyCtrl:
         self.button_joke = rospy.get_param('button_joke', 12)
         self.button_say = rospy.get_param('button_say', 15)
         
+        self.button_facetrack = rospy.get_param('button_facetrack', 3)
+        self.face_node_running=False
+        
         self.vNoses=[]
         self.vNoses.append(Nose(0,"Off",0,));
-        self.vNoses.append(Nose(1,"Red",1,));
-        self.vNoses.append(Nose(2,"Green",2,));
+        self.vNoses.append(Nose(1,"Red",2,));
+        self.vNoses.append(Nose(2,"Green",4,));
         self.NoseValue = 0
         
         self.vMouths=[]
@@ -196,10 +203,35 @@ class JoyCtrl:
             self.rotateJoke()
         if data.buttons[self.button_say] == 1:
             self.rotateStatement()
+        if data.buttons[self.button_facetrack] == 1:
+            if self.face_node_running:
+                self.stopFacetraking()
+                self.face_node_running=False
+                self.speakMessage('Face Tracking Stopped')
+            else:
+                self.face_node_running=self.facetraking()
+                self.speakMessage('Face Tracking Started')
+
 
     def joint_cb(self, data):
         self.head_tilt_pos = data.position[3]
         self.head_pan_pos = data.position[2]
+        
+    def facetraking(self):
+        try:
+            cmd = "roslaunch qbo_webi qbo_face_recognition_training.launch"
+            self.faceNode = subprocess.Popen(cmd.split())
+        except:
+            return False
+        return True
+
+    def stopFacetraking(self):
+        try:
+            rospy.loginfo("Qbo Webi: Killing Face Recognizer nodes")
+            self.faceNode.send_signal(signal.SIGINT)
+        except Exception as e:
+            rospy.loginfo("ERROR when trying to kill Face Recognizer Process "+str(e))
+        return True
         
     def rotateMouth(self):
         self.MouthValue += 1
