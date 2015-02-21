@@ -11,6 +11,8 @@
   <depend package="rospy"/>
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
+  <depend package="qbo_arduqbo"/>
+  <depend package="qbo_talk"/>
   <depend package="joy"/>
 
 </package>
